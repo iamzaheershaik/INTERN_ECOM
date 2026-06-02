@@ -1,0 +1,13 @@
+{
+  "name": "task-mern-root",
+  "version": "1.0.0",
+  "description": "Root configuration for E-Commerce MERN project",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix Backend\" \"npm run dev --prefix Frontend/vite-project\""
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "author": "Intern Ecom",
+  "license": "ISC"
+}

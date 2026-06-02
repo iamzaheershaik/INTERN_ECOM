@@ -11,7 +11,6 @@ import adminRoutes from './routes/adminRoutes.js';
 // Initialize Express
 const app = express();
 
-// CORS — allow frontend to call the API
 app.use(cors());
 
 // Body parser middleware

@@ -103,8 +103,6 @@ export const getOrderById = async (req, res, next) => {
     if (!order) {
       throw new AppError(404, 'NOT_FOUND', 'Order not found');
     }
-
-    // Access check: must be admin or the order owner
     if (req.user.role !== 'admin' && order.userId._id.toString() !== req.user._id.toString()) {
       throw new AppError(403, 'FORBIDDEN', 'Access denied to this order details');
     }
@@ -116,3 +114,26 @@ export const getOrderById = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateOrderStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if(req.user.role !== 'admin') {
+      throw new AppError(403, 'FORBIDDEN', 'Access denied to update order status');
+    }
+
+    const order = await Order.findById(id).populate('userId', 'firstName lastName email');
+    if (!order) {
+      throw new AppError(404, 'NOT_FOUND', 'Order not found');
+    }
+    order.status = status;
+    await order.save();
+    res.json({
+      data: order,
+    });
+  } catch (error) {
+    next(error);
+  }
+}

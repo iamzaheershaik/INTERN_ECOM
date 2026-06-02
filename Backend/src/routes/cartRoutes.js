@@ -10,10 +10,10 @@ router.use(authenticate);
 // GET /api/cart - Get user's cart
 router.get('/', getCart);
 
-// POST /api/cart/add - Add product to cart
+// POST /api/cart/add - Add Cart to Product
 router.post('/add', addToCart);
 
-// PUT /api/cart/update - Update cart item quantity
+// PUT /api/cart/update - Update the cart in product
 router.put('/update', updateCartItem);
 
 // DELETE /api/cart/remove/:id - Remove item from cart (id is productId)
