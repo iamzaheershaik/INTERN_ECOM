@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import productService from '../../services/productService';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
+import FilterBar from '../../product/FilterBar';
+import ProductGrid from '../../product/ProductGrid';
+import useDebounce from '../../hooks/useDebounce';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -15,6 +18,8 @@ const Home = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [cartSuccessId, setCartSuccessId] = useState(null);
   const [cartError, setCartError] = useState('');
+
+  const debouncedSearch = useDebounce(search, 400);
 
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
@@ -31,7 +36,7 @@ const Home = () => {
         limit: 8,
         sort,
       };
-      if (search) params.search = search;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (category && category !== 'All') params.category = category;
 
       const response = await productService.getProducts(params);
@@ -47,13 +52,15 @@ const Home = () => {
   };
 
   useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
+  useEffect(() => {
     fetchProducts();
-  }, [category, sort, page]);
+  }, [category, sort, page, debouncedSearch]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    setPage(1);
-    fetchProducts();
   };
 
   const handleAddToCart = async (e, productId) => {
@@ -85,43 +92,16 @@ const Home = () => {
       </div>
 
       {/* Filter and Search Bar Row */}
-      <div className="filter-row">
-        {/* Search form */}
-        <form onSubmit={handleSearchSubmit} className="search-form-wrap">
-          <Search size={18} className="search-icon" />
-          <input
-            type="text"
-            placeholder="Search products or categories..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="search-input-field"
-          />
-          <button type="submit" className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '6px' }}>
-            Find
-          </button>
-        </form>
-
-        {/* Sort and Filters */}
-        <div className="sort-row">
-          <div className="sort-label-group">
-            <SlidersHorizontal size={16} style={{ color: 'var(--color-text-muted)' }} />
-            <span className="sort-label-text">Sort By:</span>
-          </div>
-          <select
-            value={sort}
-            onChange={(e) => {
-              setSort(e.target.value);
-              setPage(1);
-            }}
-            className="sort-select-dropdown"
-          >
-            <option value="-createdAt">Newest Arrival</option>
-            <option value="price">Price: Low to High</option>
-            <option value="-price">Price: High to Low</option>
-            <option value="name">Alphabetical</option>
-          </select>
-        </div>
-      </div>
+      <FilterBar
+        search={search}
+        onSearchChange={(e) => setSearch(e.target.value)}
+        onSearchSubmit={handleSearchSubmit}
+        sort={sort}
+        onSortChange={(e) => {
+          setSort(e.target.value);
+          setPage(1);
+        }}
+      />
 
       {/* Main Grid View */}
       <div className="catalog-main">
@@ -133,6 +113,7 @@ const Home = () => {
               const isActive = (cat === 'All' && category === '') || category === cat;
               return (
                 <button
+                  type="button"
                   key={cat}
                   onClick={() => {
                     setCategory(cat === 'All' ? '' : cat);
@@ -155,141 +136,43 @@ const Home = () => {
             </div>
           )}
 
-          {loading ? (
-            /* Loading skeletons grid */
-            <div className="products-grid-container">
-              {[1, 2, 3, 4].map((item) => (
-                <div key={item} className="card" style={{ height: '340px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: 0.6 }}>
-                  <div style={{ background: 'var(--color-bg-alt)', height: '180px', borderRadius: '8px', width: '100%' }}></div>
-                  <div style={{ background: 'var(--color-bg-alt)', height: '24px', borderRadius: '4px', width: '80%', margin: '12px 0 6px 0' }}></div>
-                  <div style={{ background: 'var(--color-bg-alt)', height: '18px', borderRadius: '4px', width: '50%', marginBottom: '16px' }}></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', height: '36px' }}>
-                    <div style={{ background: 'var(--color-bg-alt)', height: '24px', borderRadius: '4px', width: '30%', alignSelf: 'center' }}></div>
-                    <div style={{ background: 'var(--color-bg-alt)', height: '36px', borderRadius: '6px', width: '40%' }}></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : products.length === 0 ? (
-            /* Empty products list */
-            <div className="card" style={{ padding: '64px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-              <h3>No Products Found</h3>
-              <p style={{ marginTop: '8px' }}>We couldn't find any products fitting your current query. Try resetting filters.</p>
+          <ProductGrid
+            products={products}
+            loading={loading}
+            cartSuccessId={cartSuccessId}
+            onAddToCart={handleAddToCart}
+            onProductClick={(id) => navigate(`/product/${id}`)}
+            onResetFilters={() => {
+              setSearch('');
+              setCategory('');
+              setSort('-createdAt');
+              setPage(1);
+            }}
+          />
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="pagination-container">
               <button
-                className="btn-primary"
-                style={{ marginTop: '20px' }}
-                onClick={() => {
-                  setSearch('');
-                  setCategory('');
-                  setSort('-createdAt');
-                  setPage(1);
-                }}
+                type="button"
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                disabled={page === 1}
+                className="pagination-btn flex-center"
               >
-                Reset Storefront
+                <ChevronLeft size={20} />
+              </button>
+              <span className="pagination-text">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                disabled={page === totalPages}
+                className="pagination-btn flex-center"
+              >
+                <ChevronRight size={20} />
               </button>
             </div>
-          ) : (
-            /* Beautiful Product Grid */
-            <>
-              <div className="products-grid-container">
-                {products.map((product) => (
-                  <div
-                    key={product._id}
-                    className="card animate-fade-in"
-                    onClick={() => navigate(`/product/${product._id}`)}
-                    style={{
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      height: '100%',
-                      justifyContent: 'space-between',
-                      position: 'relative',
-                    }}
-                  >
-                    {/* Badge */}
-                    {product.quantity <= 0 ? (
-                      <span className="sold-out-badge">
-                        Sold Out
-                      </span>
-                    ) : product.quantity < 5 ? (
-                      <span className="low-stock-badge">
-                        Only {product.quantity} Left
-                      </span>
-                    ) : null}
-
-                    {/* Image Box */}
-                    <div className="product-card-thumb flex-center">
-                      {product.image ? (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="product-card-img"
-                        />
-                      ) : (
-                        <span style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: '14px' }}>Image Unavailable</span>
-                      )}
-                    </div>
-
-                    {/* Meta */}
-                    <div>
-                      <span className="product-card-category">
-                        {product.category}
-                      </span>
-                      <h3 className="product-card-title">
-                        {product.name}
-                      </h3>
-                      <p className="product-card-desc">
-                        {product.description}
-                      </p>
-                    </div>
-
-                    {/* Pricing and Action */}
-                    <div className="product-card-footer">
-                      <span className="product-card-price">
-                        ${product.price.toFixed(2)}
-                      </span>
-                      <button
-                        className={cartSuccessId === product._id ? 'btn-cta' : 'btn-primary'}
-                        onClick={(e) => handleAddToCart(e, product._id)}
-                        disabled={product.quantity <= 0}
-                        style={{
-                          padding: '8px 12px',
-                          borderRadius: '6px',
-                          fontSize: '13px',
-                          gap: '4px',
-                        }}
-                      >
-                        <ShoppingCart size={14} />
-                        <span>{cartSuccessId === product._id ? 'Added!' : 'Add'}</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="pagination-container">
-                  <button
-                    onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                    disabled={page === 1}
-                    className="pagination-btn flex-center"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <span className="pagination-text">
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                    disabled={page === totalPages}
-                    className="pagination-btn flex-center"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </div>
-              )}
-            </>
           )}
         </div>
       </div>

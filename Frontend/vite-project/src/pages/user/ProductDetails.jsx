@@ -7,12 +7,18 @@ import { ChevronLeft, ShoppingCart, ShieldCheck, Truck, RefreshCw } from 'lucide
 
 const ProductDetails = () => {
   const { id } = useParams();
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [buttonLoading, setButtonLoading] = useState(false);
+  
+  // Group related states to avoid many useState triggers and separate rendering cycles
+  const [state, setState] = useState({
+    product: null,
+    loading: true,
+    quantity: 1,
+    error: '',
+    success: false,
+    buttonLoading: false,
+  });
+
+  const { product, loading, quantity, error, success, buttonLoading } = state;
 
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
@@ -23,37 +29,45 @@ const ProductDetails = () => {
       try {
         const response = await productService.getProductById(id);
         if (response?.data) {
-          setProduct(response.data);
+          setState((prev) => ({
+            ...prev,
+            product: response.data,
+            loading: false,
+          }));
         }
       } catch (err) {
         console.error(err);
-        setError('Failed to load product details.');
-      } finally {
-        setLoading(false);
+        setState((prev) => ({
+          ...prev,
+          error: 'Failed to load product details.',
+          loading: false,
+        }));
       }
     };
     fetchProduct();
   }, [id]);
 
   const handleAddToCart = async () => {
-    setError('');
-    setSuccess(false);
+    setState((prev) => ({ ...prev, error: '', success: false, buttonLoading: true }));
 
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
 
-    setButtonLoading(true);
     try {
       await addToCart(product._id, quantity);
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      setState((prev) => ({ ...prev, success: true, buttonLoading: false }));
+      setTimeout(() => {
+        setState((prev) => ({ ...prev, success: false }));
+      }, 3000);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || 'Error adding to cart');
-    } finally {
-      setButtonLoading(false);
+      setState((prev) => ({
+        ...prev,
+        error: err.response?.data?.message || err.message || 'Error adding to cart',
+        buttonLoading: false,
+      }));
     }
   };
 
@@ -74,7 +88,7 @@ const ProductDetails = () => {
           <p style={{ color: 'var(--color-text-muted)', margin: '16px 0 24px 0' }}>
             The item you are attempting to view does not exist or has been deleted from the catalog.
           </p>
-          <button className="btn-primary" onClick={() => navigate('/')}>
+          <button type="button" className="btn-primary" onClick={() => navigate('/')}>
             Back to Catalog
           </button>
         </div>
@@ -86,6 +100,7 @@ const ProductDetails = () => {
     <div className="container" style={{ padding: '40px 0' }}>
       {/* Back button */}
       <button
+        type="button"
         onClick={() => navigate('/')}
         style={{
           display: 'inline-flex',
@@ -96,6 +111,9 @@ const ProductDetails = () => {
           fontSize: '14px',
           marginBottom: '32px',
           cursor: 'pointer',
+          background: 'none',
+          border: 'none',
+          padding: 0
         }}
       >
         <ChevronLeft size={16} />
@@ -126,7 +144,7 @@ const ProductDetails = () => {
               {product.category}
             </span>
             <h1 className="details-product-title">{product.name}</h1>
-            <h2 className="details-product-price">${product.price.toFixed(2)}</h2>
+            <h2 className="details-product-price">₹{product.price.toLocaleString('en-IN')}</h2>
           </div>
 
           <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)' }} />
@@ -163,7 +181,8 @@ const ProductDetails = () => {
                   <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Quantity:</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-border)', borderRadius: '8px', background: 'var(--color-bg-card)', padding: '4px' }}>
                     <button
-                      onClick={() => setQuantity((q) => Math.max(q - 1, 1))}
+                      type="button"
+                      onClick={() => setState((prev) => ({ ...prev, quantity: Math.max(prev.quantity - 1, 1) }))}
                       disabled={quantity <= 1 || buttonLoading}
                       className="qty-picker-btn flex-center"
                     >
@@ -171,7 +190,8 @@ const ProductDetails = () => {
                     </button>
                     <span className="qty-picker-display">{quantity}</span>
                     <button
-                      onClick={() => setQuantity((q) => Math.min(q + 1, product.quantity))}
+                      type="button"
+                      onClick={() => setState((prev) => ({ ...prev, quantity: Math.min(prev.quantity + 1, product.quantity) }))}
                       disabled={quantity >= product.quantity || buttonLoading}
                       className="qty-picker-btn flex-center"
                     >
@@ -186,6 +206,7 @@ const ProductDetails = () => {
                 {/* Main Action buttons */}
                 <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
                   <button
+                    type="button"
                     className={success ? 'btn-cta' : 'btn-primary'}
                     onClick={handleAddToCart}
                     disabled={buttonLoading}

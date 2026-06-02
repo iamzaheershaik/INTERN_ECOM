@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, ShoppingBag, Users, LogOut, Store } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, LogOut, Store, ClipboardList } from 'lucide-react';
 
 const AdminLayout = () => {
   const { isAuthenticated, isAdmin, loading, logout, user } = useAuth();
@@ -24,6 +24,7 @@ const AdminLayout = () => {
     { path: '/admin/dashboard', name: 'Overview Dashboard', icon: LayoutDashboard },
     { path: '/admin/products', name: 'Product Catalog', icon: ShoppingBag },
     { path: '/admin/users', name: 'User Management', icon: Users },
+    { path: '/admin/orders', name: 'Order Management', icon: ClipboardList },
   ];
 
   return (
@@ -76,7 +77,7 @@ const AdminLayout = () => {
             <Store size={20} />
             <span>Go to Shop View</span>
           </Link>
-          <button onClick={logout} className="admin-sidebar-footer-btn">
+          <button type="button" onClick={logout} className="admin-sidebar-footer-btn">
             <LogOut size={20} />
             <span>Logout Account</span>
           </button>

@@ -3,35 +3,47 @@ import productService from '../../services/productService';
 import { Plus, Edit3, Trash2, X, AlertTriangle } from 'lucide-react';
 
 const ProductManagement = () => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState(null); // null means create mode, else edit mode
-  
-  // Form fields
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [category, setCategory] = useState('');
-  const [image, setImage] = useState('');
-  const [status, setStatus] = useState('active');
+  // Group listing-related states to optimize render cycles
+  const [listState, setListState] = useState({
+    products: [],
+    loading: true,
+    showModal: false,
+    currentProduct: null,
+    error: '',
+    successMsg: '',
+    deleteConfirmId: null,
+  });
 
-  const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  // Group form fields into a dedicated object
+  const [formState, setFormState] = useState({
+    name: '',
+    description: '',
+    price: '',
+    quantity: '',
+    category: '',
+    image: '',
+    status: 'active',
+  });
+
+  const [imageFile, setImageFile] = useState(null);
+
+  const { products, loading, showModal, currentProduct, error, successMsg, deleteConfirmId } = listState;
+  const { name, description, price, quantity, category, image, status } = formState;
 
   const fetchProducts = async () => {
-    setLoading(true);
+    setListState((prev) => ({ ...prev, loading: true }));
     try {
-      const response = await productService.getProducts({ page: 1, limit: 100 }); // load all active
+      const response = await productService.getProducts({ page: 1, limit: 100 });
       if (response?.data) {
-        setProducts(response.data.products || response.data || []);
+        setListState((prev) => ({
+          ...prev,
+          products: response.data.products || response.data || [],
+          loading: false,
+        }));
       }
     } catch (err) {
       console.error('Error loading inventory:', err);
-    } finally {
-      setLoading(false);
+      setListState((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -40,77 +52,97 @@ const ProductManagement = () => {
   }, []);
 
   const openCreateModal = () => {
-    setCurrentProduct(null);
-    setName('');
-    setDescription('');
-    setPrice('');
-    setQuantity('');
-    setCategory('');
-    setImage('');
-    setStatus('active');
-    setError('');
-    setShowModal(true);
+    setImageFile(null);
+    setFormState({
+      name: '',
+      description: '',
+      price: '',
+      quantity: '',
+      category: '',
+      image: '',
+      status: 'active',
+    });
+    setListState((prev) => ({
+      ...prev,
+      currentProduct: null,
+      error: '',
+      showModal: true,
+    }));
   };
 
   const openEditModal = (product) => {
-    setCurrentProduct(product);
-    setName(product.name || '');
-    setDescription(product.description || '');
-    setPrice(product.price || '');
-    setQuantity(product.quantity || '');
-    setCategory(product.category || '');
-    setImage(product.image || '');
-    setStatus(product.status || 'active');
-    setError('');
-    setShowModal(true);
+    setImageFile(null);
+    setFormState({
+      name: product.name || '',
+      description: product.description || '',
+      price: product.price || '',
+      quantity: product.quantity || '',
+      category: product.category || '',
+      image: product.image || '',
+      status: product.status || 'active',
+    });
+    setListState((prev) => ({
+      ...prev,
+      currentProduct: product,
+      error: '',
+      showModal: true,
+    }));
   };
 
   const handleModalSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccessMsg('');
+    setListState((prev) => ({ ...prev, error: '', successMsg: '' }));
 
-    const productData = {
-      name,
-      description,
-      price: Number(price),
-      quantity: Number(quantity),
-      category,
-      image,
-      status,
-    };
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('description', description);
+    formData.append('price', Number(price));
+    formData.append('quantity', Number(quantity));
+    formData.append('category', category);
+    formData.append('status', status);
+    if (imageFile) {
+      formData.append('image', imageFile);
+    } else {
+      formData.append('image', image);
+    }
 
     try {
       if (currentProduct) {
-        // Edit mode
-        await productService.updateProduct(currentProduct._id, productData);
-        setSuccessMsg('Product updated successfully!');
+        await productService.updateProduct(currentProduct._id, formData);
+        setListState((prev) => ({ ...prev, successMsg: 'Product updated successfully!', showModal: false }));
       } else {
-        // Create mode
-        await productService.createProduct(productData);
-        setSuccessMsg('Product added successfully!');
+        await productService.createProduct(formData);
+        setListState((prev) => ({ ...prev, successMsg: 'Product added successfully!', showModal: false }));
       }
-      setShowModal(false);
       fetchProducts();
-      setTimeout(() => setSuccessMsg(''), 3000);
+      setTimeout(() => {
+        setListState((prev) => ({ ...prev, successMsg: '' }));
+      }, 3000);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || 'Operation failed. Verify inputs.');
+      setListState((prev) => ({
+        ...prev,
+        error: err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Operation failed. Verify inputs.',
+      }));
     }
   };
 
   const handleDelete = async (productId) => {
-    setError('');
-    setSuccessMsg('');
+    setListState((prev) => ({ ...prev, error: '', successMsg: '' }));
     try {
       await productService.deleteProduct(productId);
-      setSuccessMsg('Product deleted (soft delete) successfully.');
-      setDeleteConfirmId(null);
+      setListState((prev) => ({
+        ...prev,
+        successMsg: 'Product deleted (soft delete) successfully.',
+        deleteConfirmId: null,
+      }));
       fetchProducts();
-      setTimeout(() => setSuccessMsg(''), 3000);
+      setTimeout(() => {
+        setListState((prev) => ({ ...prev, successMsg: '' }));
+      }, 3000);
     } catch (err) {
       console.error(err);
-      setError('Failed to delete product.');
+      setListState((prev) => ({ ...prev, error: 'Failed to delete product.' }));
     }
   };
 
@@ -125,6 +157,7 @@ const ProductManagement = () => {
           </p>
         </div>
         <button
+          type="button"
           onClick={openCreateModal}
           className="btn-primary"
           style={{
@@ -164,10 +197,10 @@ const ProductManagement = () => {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button onClick={() => handleDelete(deleteConfirmId)} className="btn-cta" style={{ padding: '8px 16px', fontSize: '13px', background: 'var(--color-danger)' }}>
+            <button type="button" onClick={() => handleDelete(deleteConfirmId)} className="btn-cta" style={{ padding: '8px 16px', fontSize: '13px', background: 'var(--color-danger)' }}>
               Confirm Delete
             </button>
-            <button onClick={() => setDeleteConfirmId(null)} style={{ padding: '8px 16px', border: '1px solid var(--color-border)', borderRadius: '8px', fontWeight: 600, fontSize: '13px' }}>
+            <button type="button" onClick={() => setListState((prev) => ({ ...prev, deleteConfirmId: null }))} style={{ padding: '8px 16px', border: '1px solid var(--color-border)', borderRadius: '8px', fontWeight: 600, fontSize: '13px' }}>
               Cancel
             </button>
           </div>
@@ -222,7 +255,7 @@ const ProductManagement = () => {
                     <td className="admin-table-cell" style={{ textTransform: 'capitalize' }}>{product.category}</td>
 
                     {/* Price */}
-                    <td className="admin-table-cell" style={{ fontWeight: 700 }}>${product.price.toFixed(2)}</td>
+                    <td className="admin-table-cell" style={{ fontWeight: 700 }}>₹{product.price.toLocaleString('en-IN')}</td>
 
                     {/* Stock level */}
                     <td className="admin-table-cell">
@@ -252,13 +285,16 @@ const ProductManagement = () => {
                     <td className="admin-table-cell" style={{ textAlign: 'right' }}>
                       <div className="admin-table-cell-actions">
                         <button
+                          type="button"
                           onClick={() => openEditModal(product)}
                           className="admin-cell-action-btn flex-center"
                         >
+                          <Plus size={16} style={{ display: 'none' }} />
                           <Edit3 size={16} />
                         </button>
                         <button
-                          onClick={() => setDeleteConfirmId(product._id)}
+                          type="button"
+                          onClick={() => setListState((prev) => ({ ...prev, deleteConfirmId: product._id }))}
                           className="admin-cell-delete-btn flex-center"
                         >
                           <Trash2 size={16} />
@@ -282,7 +318,7 @@ const ProductManagement = () => {
               <h2 className="modal-card-title">
                 {currentProduct ? 'Modify Product' : 'Add New Product'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="modal-card-close-btn flex-center">
+              <button type="button" onClick={() => setListState((prev) => ({ ...prev, showModal: false }))} className="modal-card-close-btn flex-center">
                 <X size={20} />
               </button>
             </div>
@@ -296,25 +332,27 @@ const ProductManagement = () => {
             {/* Modal Form */}
             <form onSubmit={handleModalSubmit} className="modal-card-form">
               <div className="form-group">
-                <label className="form-label">Product Name</label>
+                <label htmlFor="productName" className="form-label">Product Name</label>
                 <input
+                  id="productName"
                   type="text"
                   className="form-input"
                   placeholder="e.g., Slim Wireless Mouse"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => setFormState((prev) => ({ ...prev, name: e.target.value }))}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Description</label>
+                <label htmlFor="description" className="form-label">Description</label>
                 <textarea
+                  id="description"
                   className="form-input"
                   placeholder="Describe details, specifications..."
                   rows={3}
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => setFormState((prev) => ({ ...prev, description: e.target.value }))}
                   required
                   style={{ resize: 'vertical' }}
                 />
@@ -322,25 +360,27 @@ const ProductManagement = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Price ($)</label>
+                  <label htmlFor="price" className="form-label">Price (₹)</label>
                   <input
+                    id="price"
                     type="number"
                     step="0.01"
                     className="form-input"
-                    placeholder="99.99"
+                    placeholder="999"
                     value={price}
-                    onChange={(e) => setPrice(e.target.value)}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, price: e.target.value }))}
                     required
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Stock Quantity</label>
+                  <label htmlFor="quantity" className="form-label">Stock Quantity</label>
                   <input
+                    id="quantity"
                     type="number"
                     className="form-input"
                     placeholder="25"
                     value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, quantity: e.target.value }))}
                     required
                   />
                 </div>
@@ -348,22 +388,24 @@ const ProductManagement = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Category</label>
+                  <label htmlFor="category" className="form-label">Category</label>
                   <input
+                    id="category"
                     type="text"
                     className="form-input"
                     placeholder="e.g. Electronics, Fashion"
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, category: e.target.value }))}
                     required
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Listing Status</label>
+                  <label htmlFor="status" className="form-label">Listing Status</label>
                   <select
+                    id="status"
                     className="form-input"
                     value={status}
-                    onChange={(e) => setStatus(e.target.value)}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, status: e.target.value }))}
                     style={{ cursor: 'pointer' }}
                   >
                     <option value="active">Active (Visible)</option>
@@ -373,14 +415,49 @@ const ProductManagement = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Image URL</label>
-                <input
-                  type="url"
-                  className="form-input"
-                  placeholder="https://images.unsplash.com/... or similar"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                />
+                <label className="form-label">Product Image</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* File Upload Selector */}
+                  <div style={{ position: 'relative', border: '2px dashed var(--color-border)', borderRadius: '10px', padding: '16px', textAlign: 'center', background: 'var(--color-bg-main)', cursor: 'pointer' }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setImageFile(file);
+                        }
+                      }}
+                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '24px' }}>📷</span>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                        {imageFile ? `Selected: ${imageFile.name}` : 'Click to Upload Image File'}
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                        Supports JPG, PNG, GIF up to 5MB (Saved to Cloudinary)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Manual URL Fallback Input */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Or provide a manual image URL fallback:</span>
+                    <input
+                      id="image"
+                      type="url"
+                      className="form-input"
+                      placeholder="https://images.unsplash.com/... or similar"
+                      value={image}
+                      onChange={(e) => {
+                        setFormState((prev) => ({ ...prev, image: e.target.value }));
+                        setImageFile(null); // Clear file selection if URL is manually typed
+                      }}
+                      disabled={!!imageFile}
+                    />
+                  </div>
+                </div>
               </div>
 
               <button type="submit" className="btn-primary" style={{ padding: '14px', width: '100%', marginTop: '12px', fontWeight: 700 }}>

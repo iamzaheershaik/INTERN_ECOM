@@ -4,36 +4,47 @@ import { User, Mail, Phone, ShieldCheck, CheckCircle } from 'lucide-react';
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
+  
+  // Group related states to avoid multiple rendering cycles
+  const [state, setState] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    loading: false,
+    success: false,
+    error: '',
+  });
+
+  const { firstName, lastName, phone, loading, success, error } = state;
 
   useEffect(() => {
     if (user) {
-      setFirstName(user.firstName || '');
-      setLastName(user.lastName || '');
-      setPhone(user.phone || '');
+      setState((prev) => ({
+        ...prev,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        phone: user.phone || '',
+      }));
     }
   }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess(false);
-    setLoading(true);
+    setState((prev) => ({ ...prev, error: '', success: false, loading: true }));
 
     try {
       await updateProfile({ firstName, lastName, phone });
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      setState((prev) => ({ ...prev, success: true, loading: false }));
+      setTimeout(() => {
+        setState((prev) => ({ ...prev, success: false }));
+      }, 3000);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || 'Failed to update profile settings.');
-    } finally {
-      setLoading(false);
+      setState((prev) => ({
+        ...prev,
+        error: err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Failed to update profile settings.',
+        loading: false,
+      }));
     }
   };
 
@@ -101,27 +112,29 @@ const Profile = () => {
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">
+                <label htmlFor="firstName" className="form-label">
                   First Name
                 </label>
                 <input
+                  id="firstName"
                   type="text"
                   className="form-input"
                   value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
+                  onChange={(e) => setState((prev) => ({ ...prev, firstName: e.target.value }))}
                   required
                   disabled={loading}
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">
+                <label htmlFor="lastName" className="form-label">
                   Last Name
                 </label>
                 <input
+                  id="lastName"
                   type="text"
                   className="form-input"
                   value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
+                  onChange={(e) => setState((prev) => ({ ...prev, lastName: e.target.value }))}
                   required
                   disabled={loading}
                 />
@@ -129,10 +142,11 @@ const Profile = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label" style={{ color: 'var(--color-text-muted)' }}>
+              <label htmlFor="email" className="form-label" style={{ color: 'var(--color-text-muted)' }}>
                 Email Address (Read-only)
               </label>
               <input
+                id="email"
                 type="email"
                 className="form-input"
                 value={user?.email || ''}
@@ -142,15 +156,16 @@ const Profile = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">
+              <label htmlFor="phone" className="form-label">
                 Phone Number
               </label>
               <input
+                id="phone"
                 type="tel"
                 className="form-input"
                 placeholder="+1234567890"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setState((prev) => ({ ...prev, phone: e.target.value }))}
                 disabled={loading}
               />
             </div>

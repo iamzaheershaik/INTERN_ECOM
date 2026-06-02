@@ -50,7 +50,7 @@ const UserManagement = () => {
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || 'Error updating role.');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Error updating role.');
     }
   };
 
@@ -224,6 +224,7 @@ const UserManagement = () => {
                         <div className="admin-table-cell-actions">
                           {/* Role Toggle Trigger */}
                           <button
+                            type="button"
                             onClick={() => handleRoleToggle(item._id, item.role)}
                             disabled={isSelf}
                             title={item.role === 'admin' ? 'Demote to User' : 'Promote to Admin'}
@@ -239,6 +240,7 @@ const UserManagement = () => {
 
                           {/* Status Toggle Trigger */}
                           <button
+                            type="button"
                             onClick={() => handleStatusToggle(item._id, item.isActive)}
                             disabled={isSelf}
                             title={item.isActive ? 'Deactivate Account' : 'Activate Account'}
@@ -254,6 +256,7 @@ const UserManagement = () => {
 
                           {/* Permanently Delete User */}
                           <button
+                            type="button"
                             onClick={() => handleDeleteUser(item._id)}
                             disabled={isSelf}
                             title="Delete User permanently"

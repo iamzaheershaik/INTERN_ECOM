@@ -1,26 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import adminService from '../../services/adminService';
 import productService from '../../services/productService';
-import { Users, ShoppingBag, CreditCard, DollarSign, RefreshCw, Sparkles, CheckCircle } from 'lucide-react';
+import { Users, ShoppingBag, CreditCard, IndianRupee, RefreshCw, Sparkles, CheckCircle } from 'lucide-react';
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState(null);
-  const [recentOrders, setRecentOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [seedLoading, setSeedLoading] = useState(false);
-  const [seedSuccess, setSeedSuccess] = useState(false);
+  // Group related states to avoid multiple rendering cycles
+  const [state, setState] = useState({
+    stats: null,
+    recentOrders: [],
+    loading: true,
+    seedLoading: false,
+    seedSuccess: false,
+  });
+
+  const { stats, recentOrders, loading, seedLoading, seedSuccess } = state;
 
   const fetchStats = async () => {
     try {
       const response = await adminService.getDashboardStats();
       if (response?.data) {
-        setStats(response.data.stats);
-        setRecentOrders(response.data.recentOrders || []);
+        setState((prev) => ({
+          ...prev,
+          stats: response.data.stats,
+          recentOrders: response.data.recentOrders || [],
+          loading: false,
+        }));
       }
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
-    } finally {
-      setLoading(false);
+      setState((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -29,14 +37,13 @@ const AdminDashboard = () => {
   }, []);
 
   const handleSeedProducts = async () => {
-    setSeedLoading(true);
-    setSeedSuccess(false);
+    setState((prev) => ({ ...prev, seedLoading: true, seedSuccess: false }));
 
     const demoProducts = [
       {
         name: 'Wireless Mechanical Keyboard',
         description: 'Ergonomic 75% mechanical keyboard with custom linear switches and RGB backlighting.',
-        price: 129.99,
+        price: 10999,
         quantity: 50,
         category: 'Electronics',
         image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
@@ -45,7 +52,7 @@ const AdminDashboard = () => {
       {
         name: 'Active Noise Cancelling Headphones',
         description: 'High-fidelity active noise-cancelling over-ear headphones with 30-hour battery life.',
-        price: 249.99,
+        price: 19999,
         quantity: 35,
         category: 'Electronics',
         image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
@@ -54,7 +61,7 @@ const AdminDashboard = () => {
       {
         name: 'Ergonomic Premium Office Chair',
         description: 'Breathable mesh office chair with adaptive lumbar support and multi-angle adjustable armrests.',
-        price: 349.99,
+        price: 28999,
         quantity: 15,
         category: 'Home & Kitchen',
         image: 'https://images.unsplash.com/photo-1589384267710-7a259678a59a?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
@@ -63,7 +70,7 @@ const AdminDashboard = () => {
       {
         name: 'Handcrafted Slim Leather Wallet',
         description: 'Handcrafted full-grain leather bi-fold wallet featuring secure RFID blocking protection.',
-        price: 49.99,
+        price: 3999,
         quantity: 100,
         category: 'Fashion',
         image: 'https://images.unsplash.com/photo-1627124765135-568b3f6f1c4e?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
@@ -72,7 +79,7 @@ const AdminDashboard = () => {
       {
         name: 'Double-Walled Aesthetic Water Bottle',
         description: 'Double-walled vacuum-insulated stainless steel water bottle, keeping cold for 24h.',
-        price: 29.99,
+        price: 2499,
         quantity: 150,
         category: 'Fitness',
         image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
@@ -81,7 +88,7 @@ const AdminDashboard = () => {
       {
         name: 'Smart OLED Fitness Tracker',
         description: 'Water-resistant health tracker monitoring heart-rate, active calories, and sleep cycles.',
-        price: 79.99,
+        price: 6999,
         quantity: 75,
         category: 'Fitness',
         image: 'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
@@ -93,13 +100,14 @@ const AdminDashboard = () => {
       for (const prod of demoProducts) {
         await productService.createProduct(prod);
       }
-      setSeedSuccess(true);
+      setState((prev) => ({ ...prev, seedSuccess: true, seedLoading: false }));
       await fetchStats();
-      setTimeout(() => setSeedSuccess(false), 3000);
+      setTimeout(() => {
+        setState((prev) => ({ ...prev, seedSuccess: false }));
+      }, 3000);
     } catch (err) {
       console.error('Error seeding demo products:', err);
-    } finally {
-      setSeedLoading(false);
+      setState((prev) => ({ ...prev, seedLoading: false }));
     }
   };
 
@@ -140,12 +148,13 @@ const AdminDashboard = () => {
           </p>
         </div>
         <div className="admin-header-actions">
-          <button onClick={fetchStats} className="admin-action-btn">
+          <button type="button" onClick={fetchStats} className="admin-action-btn">
             <RefreshCw size={16} />
             <span>Reload Stats</span>
           </button>
 
           <button
+            type="button"
             onClick={handleSeedProducts}
             disabled={seedLoading}
             className="btn-primary"
@@ -208,10 +217,10 @@ const AdminDashboard = () => {
         <div className="card admin-stat-card" style={{ borderLeft: '6px solid #f59e0b' }}>
           <div>
             <p className="admin-stat-label">Gross Earnings</p>
-            <h2 className="admin-stat-number">${stats?.totalRevenue?.toFixed(2) || '0.00'}</h2>
+            <h2 className="admin-stat-number">₹{stats?.totalRevenue?.toLocaleString('en-IN') || '0'}</h2>
           </div>
           <div className="admin-stat-icon-box flex-center" style={{ background: '#fef3c7', color: '#d97706' }}>
-            <DollarSign size={24} />
+            <IndianRupee size={24} />
           </div>
         </div>
       </div>
@@ -254,7 +263,7 @@ const AdminDashboard = () => {
                         <span className="admin-table-cell-muted">{client.email || 'N/A'}</span>
                       </td>
                       <td className="admin-table-cell" style={{ color: 'var(--color-text-muted)' }}>{orderDate}</td>
-                      <td className="admin-table-cell" style={{ fontWeight: 700 }}>${order.totalAmount.toFixed(2)}</td>
+                      <td className="admin-table-cell" style={{ fontWeight: 700 }}>₹{order.totalAmount.toLocaleString('en-IN')}</td>
                       <td className="admin-table-cell">
                         <span
                           style={{

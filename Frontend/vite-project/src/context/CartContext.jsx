@@ -1,97 +1,78 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, use, useEffect, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from './AuthContext';
-import cartService from '../services/cartService';
+import {
+  fetchCart,
+  addToCart,
+  updateCartItem,
+  removeFromCart,
+  clearCart,
+} from '../redux/actions/cartActions';
 
 const CartContext = createContext(null);
 
 export const CartProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  const [cart, setCart] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
 
-  const fetchCart = async () => {
-    if (!isAuthenticated) return;
-    setLoading(true);
-    try {
-      const response = await cartService.getCart();
-      if (response?.data) {
-        setCart(response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching cart:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Select cart states directly from Redux store cart slice
+  const { cart, loading, cartItemsCount, cartTotalPrice } = useSelector(
+    (state) => state.cart
+  );
 
+  // Sync cart session logs whenever authentication changes
   useEffect(() => {
     if (isAuthenticated) {
-      fetchCart();
+      dispatch(fetchCart());
     } else {
-      setCart(null);
+      dispatch(clearCart());
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, dispatch]);
 
-  const addToCart = async (productId, quantity = 1) => {
-    if (!isAuthenticated) {
-      throw new Error('Please log in to add products to your cart.');
-    }
-    const response = await cartService.addToCart(productId, quantity);
-    if (response?.data) {
-      setCart(response.data);
-      return response.data;
-    }
-    throw new Error('Could not add item to cart');
+  // Proxy actions directly to Redux dispatch thunks
+  const handleFetchCart = async () => {
+    return dispatch(fetchCart());
   };
 
-  const updateCartItem = async (productId, quantity) => {
-    if (!isAuthenticated) return;
-    const response = await cartService.updateCartItem(productId, quantity);
-    if (response?.data) {
-      setCart(response.data);
-      return response.data;
-    }
-    throw new Error('Could not update cart quantity');
+  const handleAddToCart = async (productId, quantity = 1) => {
+    return dispatch(addToCart(productId, quantity));
   };
 
-  const removeFromCart = async (productId) => {
-    if (!isAuthenticated) return;
-    const response = await cartService.removeFromCart(productId);
-    if (response?.data) {
-      setCart(response.data);
-      return response.data;
-    }
-    throw new Error('Could not remove item from cart');
+  const handleUpdateCartItem = async (productId, quantity) => {
+    return dispatch(updateCartItem(productId, quantity));
   };
 
-  const clearCart = () => {
-    setCart(null);
+  const handleRemoveFromCart = async (productId) => {
+    return dispatch(removeFromCart(productId));
   };
 
-  const cartItemsCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0;
-  const cartTotalPrice = cart?.items?.reduce((total, item) => total + item.quantity * item.price, 0) || 0;
+  const handleClearCart = () => {
+    dispatch(clearCart());
+  };
+
+  // Stabilize value object with useMemo to prevent breaking children memoization
+  const contextValue = useMemo(() => ({
+    cart,
+    loading,
+    cartItemsCount,
+    cartTotalPrice,
+    fetchCart: handleFetchCart,
+    addToCart: handleAddToCart,
+    updateCartItem: handleUpdateCartItem,
+    removeFromCart: handleRemoveFromCart,
+    clearCart: handleClearCart,
+  }), [cart, loading, cartItemsCount, cartTotalPrice]);
 
   return (
-    <CartContext.Provider
-      value={{
-        cart,
-        loading,
-        cartItemsCount,
-        cartTotalPrice,
-        fetchCart,
-        addToCart,
-        updateCartItem,
-        removeFromCart,
-        clearCart,
-      }}
-    >
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );
 };
 
 export const useCart = () => {
-  const context = useContext(CartContext);
+  // Replaced useContext with React 19's use() API
+  const context = use(CartContext);
   if (!context) {
     throw new Error('useCart must be used within a CartProvider');
   }

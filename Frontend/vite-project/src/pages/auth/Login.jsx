@@ -25,7 +25,7 @@ const Login = () => {
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || 'Failed to sign in. Please verify credentials.');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Failed to sign in. Please verify credentials.');
     } finally {
       setLoading(false);
     }
@@ -50,10 +50,11 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label className="form-label">
+            <label htmlFor="email" className="form-label">
               Email Address
             </label>
             <input
+              id="email"
               type="email"
               className="form-input"
               placeholder="name@example.com"
@@ -66,12 +67,13 @@ const Login = () => {
 
           <div className="form-group">
             <div className="form-label-row">
-              <label className="form-label">Password</label>
+              <label htmlFor="password" className="form-label">Password</label>
               <Link to="/forgot-password" style={{ fontSize: '13px', fontWeight: 500 }}>
                 Forgot Password?
               </Link>
             </div>
             <input
+              id="password"
               type="password"
               className="form-input"
               placeholder="••••••••"

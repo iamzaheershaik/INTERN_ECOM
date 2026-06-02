@@ -1,44 +1,62 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import authService from '../../services/authService';
 
 const ResetPassword = () => {
-  const [token, setToken] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const queryToken = searchParams.get('token') || '';
+  const emailFromState = location.state?.email || '';
+
+  // Group multiple state hooks into a single unified state object
+  const [state, setState] = useState({
+    token: queryToken,
+    newPassword: '',
+    confirmPassword: '',
+    success: false,
+    error: '',
+    loading: false,
+  });
+
+  const { token, newPassword, confirmPassword, success, error, loading } = state;
 
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (queryToken) {
+      setState((prev) => ({ ...prev, token: queryToken }));
+    }
+  }, [queryToken]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setState((prev) => ({ ...prev, error: '' }));
 
     if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long.');
+      setState((prev) => ({ ...prev, error: 'Password must be at least 8 characters long.' }));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+      setState((prev) => ({ ...prev, error: 'Passwords do not match.' }));
       return;
     }
 
-    setLoading(true);
+    setState((prev) => ({ ...prev, loading: true }));
 
     try {
       await authService.resetPassword(token.trim(), newPassword);
-      setSuccess(true);
+      setState((prev) => ({ ...prev, success: true, loading: false }));
       setTimeout(() => {
         navigate('/login');
       }, 3000);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || 'Reset failed. Token might be invalid or expired.');
-    } finally {
-      setLoading(false);
+      setState((prev) => ({
+        ...prev,
+        error: err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Reset failed. Token might be invalid or expired.',
+        loading: false,
+      }));
     }
   };
 
@@ -48,8 +66,13 @@ const ResetPassword = () => {
         <div className="auth-header">
           <h2 className="auth-title">Set New Password</h2>
           <p className="auth-subtitle">
-            Enter the token from your console logs to reset
+            Enter the 6-digit recovery OTP from your email
           </p>
+          {emailFromState && (
+            <p style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: '15px', marginTop: '4px' }}>
+              {emailFromState}
+            </p>
+          )}
         </div>
 
         {error && (
@@ -84,45 +107,51 @@ const ResetPassword = () => {
         ) : (
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
-              <label className="form-label">
-                Reset Token
+              <label htmlFor="token" className="form-label">
+                6-Digit Recovery OTP
               </label>
               <input
+                id="token"
                 type="text"
+                inputMode="numeric"
+                maxLength={6}
                 className="form-input"
-                placeholder="Paste token from server logs"
+                placeholder="Enter 6-digit code"
                 value={token}
-                onChange={(e) => setToken(e.target.value)}
+                onChange={(e) => setState((prev) => ({ ...prev, token: e.target.value }))}
                 required
                 disabled={loading}
+                style={{ letterSpacing: '4px', fontFamily: 'monospace', fontSize: '18px', textAlign: 'center' }}
               />
             </div>
 
             <div className="form-group">
-              <label className="form-label">
+              <label htmlFor="newPassword" className="form-label">
                 New Password
               </label>
               <input
+                id="newPassword"
                 type="password"
                 className="form-input"
                 placeholder="Minimum 8 characters"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e) => setState((prev) => ({ ...prev, newPassword: e.target.value }))}
                 required
                 disabled={loading}
               />
             </div>
 
             <div className="form-group">
-              <label className="form-label">
+              <label htmlFor="confirmPassword" className="form-label">
                 Confirm Password
               </label>
               <input
+                id="confirmPassword"
                 type="password"
                 className="form-input"
                 placeholder="Re-enter new password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => setState((prev) => ({ ...prev, confirmPassword: e.target.value }))}
                 required
                 disabled={loading}
               />

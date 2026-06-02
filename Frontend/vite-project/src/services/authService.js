@@ -20,6 +20,16 @@ const authService = {
     const response = await api.post('/auth/reset-password', { token, newPassword });
     return response.data;
   },
+
+  verifyOTP: async ({ email, otp }) => {
+    const response = await api.post('/auth/verify-otp', { email, otp });
+    return response.data;
+  },
+
+  resendOTP: async (email) => {
+    const response = await api.post('/auth/resend-otp', { email });
+    return response.data;
+  },
 };
 
 export default authService;

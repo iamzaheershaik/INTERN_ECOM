@@ -3,34 +3,44 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const Register = () => {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [phone, setPhone] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  // Coalesce registration form fields
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+  });
+
+  // Coalesce status and loader state
+  const [status, setStatus] = useState({
+    error: '',
+    loading: false,
+  });
+
+  const { firstName, lastName, email, phone, password, confirmPassword } = formData;
+  const { error, loading } = status;
 
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setStatus({ error: '', loading: false });
 
     // Validations
     if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
+      setStatus({ error: 'Password must be at least 8 characters long.', loading: false });
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setStatus({ error: 'Passwords do not match.', loading: false });
       return;
     }
 
-    setLoading(true);
+    setStatus((prev) => ({ ...prev, loading: true }));
 
     try {
       await register({
@@ -41,12 +51,13 @@ const Register = () => {
         confirmPassword,
         phone,
       });
-      navigate('/');
+      navigate('/verify-otp', { state: { email } });
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
+      setStatus({
+        error: err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Registration failed. Please try again.',
+        loading: false,
+      });
     }
   };
 
@@ -69,29 +80,31 @@ const Register = () => {
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">
+              <label htmlFor="firstName" className="form-label">
                 First Name
               </label>
               <input
+                id="firstName"
                 type="text"
                 className="form-input"
                 placeholder="John"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                onChange={(e) => setFormData((prev) => ({ ...prev, firstName: e.target.value }))}
                 required
                 disabled={loading}
               />
             </div>
             <div className="form-group">
-              <label className="form-label">
+              <label htmlFor="lastName" className="form-label">
                 Last Name
               </label>
               <input
+                id="lastName"
                 type="text"
                 className="form-input"
                 placeholder="Doe"
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
                 required
                 disabled={loading}
               />
@@ -99,59 +112,63 @@ const Register = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">
+            <label htmlFor="email" className="form-label">
               Email Address
             </label>
             <input
+              id="email"
               type="email"
               className="form-input"
               placeholder="john.doe@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
               required
               disabled={loading}
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">
+            <label htmlFor="phone" className="form-label">
               Phone Number (Optional)
             </label>
             <input
+              id="phone"
               type="tel"
               className="form-input"
               placeholder="+1234567890"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
               disabled={loading}
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">
+            <label htmlFor="password" className="form-label">
               Password
             </label>
             <input
+              id="password"
               type="password"
               className="form-input"
               placeholder="Minimum 8 characters"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
               required
               disabled={loading}
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">
+            <label htmlFor="confirmPassword" className="form-label">
               Confirm Password
             </label>
             <input
+              id="confirmPassword"
               type="password"
               className="form-input"
               placeholder="Re-enter password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
               required
               disabled={loading}
             />
