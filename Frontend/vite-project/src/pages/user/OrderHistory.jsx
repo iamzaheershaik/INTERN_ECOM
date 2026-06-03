@@ -56,7 +56,7 @@ const OrderHistory = () => {
   }
 
   return (
-    <div className="container" style={{ padding: '40px 0' }}>
+    <div className="container page-section">
       <div className="history-title-row">
         <div className="history-title-icon flex-center">
           <History size={24} />
@@ -65,7 +65,7 @@ const OrderHistory = () => {
       </div>
 
       {orders.length === 0 ? (
-        <div className="card" style={{ padding: '64px', textAlign: 'center', borderRadius: '16px' }}>
+        <div className="card empty-state-card">
           <div className="flex-center" style={{ width: '64px', height: '64px', background: 'var(--color-bg-alt)', color: 'var(--color-primary)', borderRadius: '50%', margin: '0 auto 20px auto' }}>
             <Package size={28} />
           </div>

@@ -26,6 +26,8 @@ const ProductManagement = () => {
   });
 
   const [imageFile, setImageFile] = useState(null);
+  const [existingCategories, setExistingCategories] = useState([]);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   const { products, loading, showModal, currentProduct, error, successMsg, deleteConfirmId } = listState;
   const { name, description, price, quantity, category, image, status } = formState;
@@ -47,12 +49,29 @@ const ProductManagement = () => {
     }
   };
 
+  const fetchCategoriesList = async () => {
+    try {
+      const response = await productService.getCategories();
+      if (response?.data) {
+        const cats = response.data.filter(Boolean).map((cat) => cat.trim());
+        setExistingCategories(cats);
+        return cats;
+      }
+    } catch (err) {
+      console.error('Error fetching categories in management:', err);
+    }
+    return [];
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchCategoriesList();
   }, []);
 
   const openCreateModal = () => {
     setImageFile(null);
+    setIsCustomCategory(false);
+    fetchCategoriesList();
     setFormState({
       name: '',
       description: '',
@@ -70,14 +89,20 @@ const ProductManagement = () => {
     }));
   };
 
-  const openEditModal = (product) => {
+  const openEditModal = async (product) => {
     setImageFile(null);
+    const latestCats = await fetchCategoriesList();
+    const prodCategory = product.category || '';
+
+    const isCustom = prodCategory && !latestCats.some((cat) => cat.toLowerCase() === prodCategory.trim().toLowerCase());
+    setIsCustomCategory(isCustom);
+
     setFormState({
       name: product.name || '',
       description: product.description || '',
       price: product.price || '',
       quantity: product.quantity || '',
-      category: product.category || '',
+      category: prodCategory,
       image: product.image || '',
       status: product.status || 'active',
     });
@@ -115,6 +140,7 @@ const ProductManagement = () => {
         setListState((prev) => ({ ...prev, successMsg: 'Product added successfully!', showModal: false }));
       }
       fetchProducts();
+      fetchCategoriesList();
       setTimeout(() => {
         setListState((prev) => ({ ...prev, successMsg: '' }));
       }, 3000);
@@ -388,16 +414,44 @@ const ProductManagement = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="category" className="form-label">Category</label>
-                  <input
-                    id="category"
-                    type="text"
+                  <label htmlFor="categorySelect" className="form-label">Category</label>
+                  <select
+                    id="categorySelect"
                     className="form-input"
-                    placeholder="e.g. Electronics, Fashion"
-                    value={category}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, category: e.target.value }))}
-                    required
-                  />
+                    value={isCustomCategory ? '__custom__' : category}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '__custom__') {
+                        setIsCustomCategory(true);
+                        setFormState((prev) => ({ ...prev, category: '' }));
+                      } else {
+                        setIsCustomCategory(false);
+                        setFormState((prev) => ({ ...prev, category: val }));
+                      }
+                    }}
+                    required={!isCustomCategory}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <option value="">-- Select a Category --</option>
+                    {existingCategories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                    <option value="__custom__">➕ Create New Category...</option>
+                  </select>
+
+                  {isCustomCategory && (
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Type new category name..."
+                      value={category}
+                      onChange={(e) => setFormState((prev) => ({ ...prev, category: e.target.value }))}
+                      required
+                      style={{ marginTop: '8px' }}
+                    />
+                  )}
                 </div>
                 <div className="form-group">
                   <label htmlFor="status" className="form-label">Listing Status</label>

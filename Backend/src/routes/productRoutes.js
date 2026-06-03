@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   createProduct,
+  getCategories,
   getProducts,
   getProductById,
   updateProduct,
@@ -16,6 +17,9 @@ router.post('/', authenticate, authorize('admin'), uploadImage, uploadToCloudina
 
 // GET /api/products - Get paginated list of products (Public)
 router.get('/', getProducts);
+
+// GET /api/products/categories - Get distinct list of product categories (Public)
+router.get('/categories', getCategories);
 
 // GET /api/products/:id - Get single product details (Public)
 router.get('/:id', getProductById);

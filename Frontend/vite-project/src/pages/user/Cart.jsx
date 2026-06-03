@@ -43,15 +43,15 @@ const Cart = () => {
   const items = cart?.items || [];
 
   return (
-    <div className="container" style={{ padding: '40px 0' }}>
-      <h1 style={{ fontSize: '32px', marginBottom: '32px' }}>Shopping Basket</h1>
+    <div className="container page-section">
+      <h1 className="page-title">Shopping Basket</h1>
 
       <Alert type="error" style={{ marginBottom: '24px' }}>
         {error}
       </Alert>
 
       {items.length === 0 ? (
-        <div className="card" style={{ padding: '64px', textAlign: 'center', borderRadius: '16px' }}>
+        <div className="card empty-state-card">
           <div className="flex-center" style={{ width: '64px', height: '64px', background: 'var(--color-bg-alt)', color: 'var(--color-primary)', borderRadius: '50%', margin: '0 auto 20px auto' }}>
             <ShoppingBag size={28} />
           </div>

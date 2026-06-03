@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import productService from '../../services/productService';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import FilterBar from '../../product/FilterBar';
-import ProductGrid from '../../product/ProductGrid';
+import ProductGrid from '../components/ProductGrid';
 import useDebounce from '../../hooks/useDebounce';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -99,31 +98,56 @@ const Home = () => {
 
   return (
     <div className="container page-section">
-      {/* Header Banner */}
-      <div className="home-banner">
-        <h1 className="home-banner-title">Discover Premium Items</h1>
-        <p className="home-banner-desc">
-          Explore our handpicked curation of exceptional tech, clothing, and domestic goods with instant cart synchronization and ordering.
+      {/* V2 Premium Hero Banner */}
+      <div className="v2-home-banner">
+        <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-success)', display: 'block', marginBottom: '12px' }}>
+          Curated Elegance
+        </span>
+        <h1 className="v2-home-banner-title">Discover Premium Items</h1>
+        <p className="v2-home-banner-desc">
+          Explore our handpicked collection of exceptional tech, clothing, and lifestyle products, featuring instant synchronization and checkout.
         </p>
       </div>
 
-      {/* Filter and Search Bar Row */}
-      <FilterBar
-        search={search}
-        onSearchChange={(e) => setSearch(e.target.value)}
-        onSearchSubmit={handleSearchSubmit}
-        sort={sort}
-        onSortChange={(e) => {
-          setSort(e.target.value);
-          setPage(1);
-        }}
-      />
+      {/* V2 Filter & Search Bar Row */}
+      <div className="v2-filter-row">
+        <form onSubmit={handleSearchSubmit} className="v2-search-wrap">
+          <Search size={18} style={{ color: 'var(--color-text-muted)', marginRight: '10px' }} />
+          <input
+            type="text"
+            placeholder="Search products or categories..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="v2-search-input"
+          />
+        </form>
 
-      {/* Main Grid View */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <SlidersHorizontal size={15} style={{ color: 'var(--color-text-muted)' }} />
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Sort By:</span>
+          </div>
+          <select
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value);
+              setPage(1);
+            }}
+            className="v2-sort-dropdown"
+          >
+            <option value="-createdAt">Newest Arrivals</option>
+            <option value="price">Price: Low to High</option>
+            <option value="-price">Price: High to Low</option>
+            <option value="name">Alphabetical</option>
+          </select>
+        </div>
+      </div>
+
+      {/* V2 Main Grid & Sidebar Layout */}
       <div className="catalog-main">
-        {/* Left category filter sidebar */}
-        <aside className="sidebar-filter">
-          <h3 className="sidebar-title">Categories</h3>
+        {/* Left Category Sidebar */}
+        <aside className="sidebar-filter v2-glass-card" style={{ border: 'none' }}>
+          <h3 className="v2-sidebar-title">Categories</h3>
           <div className="sidebar-list">
             {categories.map((cat) => {
               const isActive = (cat === 'All' && category === '') || category === cat;
@@ -135,7 +159,7 @@ const Home = () => {
                     setCategory(cat === 'All' ? '' : cat);
                     setPage(1);
                   }}
-                  className={isActive ? 'sidebar-btn sidebar-btn-active' : 'sidebar-btn'}
+                  className={isActive ? 'v2-sidebar-btn v2-sidebar-btn-active' : 'v2-sidebar-btn'}
                 >
                   {cat}
                 </button>
@@ -147,7 +171,7 @@ const Home = () => {
         {/* Right Product Grid */}
         <div style={{ flex: 1 }}>
           {cartError && (
-            <div className="auth-alert-danger">
+            <div className="auth-alert-danger" style={{ borderRadius: '6px' }}>
               {cartError}
             </div>
           )}
@@ -168,25 +192,27 @@ const Home = () => {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="pagination-container">
+            <div className="pagination-container" style={{ gap: '12px' }}>
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
                 disabled={page === 1}
-                className="pagination-btn flex-center"
+                className="pagination-btn flex-center v2-glass-card"
+                style={{ width: '36px', height: '36px', borderRadius: '4px', border: 'none' }}
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={16} />
               </button>
-              <span className="pagination-text">
+              <span className="pagination-text" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-muted)' }}>
                 Page {page} of {totalPages}
               </span>
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                 disabled={page === totalPages}
-                className="pagination-btn flex-center"
+                className="pagination-btn flex-center v2-glass-card"
+                style={{ width: '36px', height: '36px', borderRadius: '4px', border: 'none' }}
               >
-                <ChevronRight size={20} />
+                <ChevronRight size={16} />
               </button>
             </div>
           )}

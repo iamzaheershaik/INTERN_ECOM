@@ -25,6 +25,19 @@ export const createProduct = async (req, res, next) => {
   }
 };
 
+// GET /api/products/categories
+// Access: Public
+export const getCategories = async (req, res, next) => {
+  try {
+    const categories = await Product.distinct('category', { isDeleted: { $ne: true } });
+    res.json({
+      data: categories,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // GET /api/products
 // Access: Public
 export const getProducts = async (req, res, next) => {

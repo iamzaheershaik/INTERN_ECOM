@@ -71,7 +71,7 @@ const Checkout = () => {
   // 1. Success Placed Screen Flow
   if (successOrder) {
     return (
-      <div className="container" style={{ padding: '64px 0', textAlign: 'center' }}>
+      <div className="container page-section" style={{ textAlign: 'center' }}>
         <div className="card" style={{ padding: '48px', maxWidth: '550px', margin: '0 auto', borderRadius: '16px', boxShadow: 'var(--shadow-xl)' }}>
           <div className="flex-center" style={{ width: '72px', height: '72px', background: '#dcfce7', color: 'var(--color-success)', borderRadius: '50%', fontSize: '36px', margin: '0 auto 24px auto' }}>
             <CheckCircle size={40} />
@@ -81,7 +81,7 @@ const Checkout = () => {
             Thank you for your purchase. Your order reference is <strong style={{ color: 'var(--color-primary)' }}>#{successOrder._id || successOrder.id}</strong>.
             We have received your shipping details for <strong style={{ color: 'var(--color-text-main)' }}>{city}, {addressState}</strong> and are preparing your packages.
           </p>
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+          <div className="checkout-success-actions">
             <Link to="/order-history" className="btn-primary" style={{ padding: '12px 24px' }}>
               View Purchase History
             </Link>
@@ -97,7 +97,7 @@ const Checkout = () => {
   // 2. Empty Cart Safeguard Fallback Screen
   if (items.length === 0) {
     return (
-      <div className="container" style={{ padding: '64px 0', textAlign: 'center' }}>
+      <div className="container page-section" style={{ textAlign: 'center' }}>
         <div className="card" style={{ padding: '48px', maxWidth: '500px', margin: '0 auto', borderRadius: '16px' }}>
           <h2 style={{ fontSize: '24px', marginBottom: '12px' }}>Your Shopping Basket is Empty</h2>
           <p style={{ color: 'var(--color-text-muted)', marginBottom: '24px', fontSize: '15px' }}>
@@ -113,7 +113,7 @@ const Checkout = () => {
 
   // 3. Main Form Screen
   return (
-    <div className="container" style={{ padding: '40px 0' }}>
+    <div className="container page-section">
       {/* Back Link */}
       <div style={{ marginBottom: '24px' }}>
         <Link to="/cart" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: 'var(--color-primary)' }}>
@@ -122,7 +122,7 @@ const Checkout = () => {
         </Link>
       </div>
 
-      <h1 style={{ fontSize: '32px', marginBottom: '32px' }}>Secure Checkout</h1>
+      <h1 className="page-title">Secure Checkout</h1>
 
       {error && (
         <Alert type="error" style={{ marginBottom: '24px' }}>

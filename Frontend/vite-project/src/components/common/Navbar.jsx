@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { ShoppingCart, User, LogOut, LayoutDashboard, History, Menu, X } from 'lucide-react';
+import UiToggleSwitch from './UiToggleSwitch';
 
 const Navbar = () => {
   const { isAuthenticated, isAdmin, user, logout } = useAuth();
@@ -41,6 +42,9 @@ const Navbar = () => {
 
         {/* Dynamic Navigation Links */}
         <nav className={`navbar-menu ${isMobileMenuOpen ? 'navbar-menu-open' : ''}`}>
+          <div style={{ marginRight: '8px', display: 'flex', alignItems: 'center' }}>
+            <UiToggleSwitch />
+          </div>
           {isAdmin ? (
             /* Admin view links */
             <>
